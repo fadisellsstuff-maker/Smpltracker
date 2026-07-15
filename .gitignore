@@ -1,0 +1,9 @@
+node_modules/
+dist/
+dist-ssr/
+scripts/shots/
+context/
+*.local
+.DS_Store
+.vscode/*
+!.vscode/extensions.json
