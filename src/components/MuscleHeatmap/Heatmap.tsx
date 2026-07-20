@@ -3,8 +3,8 @@ import { SLUG_TO_MUSCLES } from '../../lib/muscles'
 import { HEAT_COLORS, type HeatLevel, type HeatmapData } from '../../lib/insights/heatmap'
 import { anteriorData, posteriorData, type BodyPolygon } from './bodyData'
 
-const BASE = '#3f3f46' // untrained / non-muscle fill (matches HEAT_COLORS.untrained)
-const OUTLINE = '#18181b'
+const BASE = '#5b6472' // resting body / non-muscle fill (matches HEAT_COLORS.untrained)
+const OUTLINE = '#0f1115' // dark seam between muscles for definition
 
 /** Custom polygons for groups the library lacks (lats + side delts). */
 interface Overlay {

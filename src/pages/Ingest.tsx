@@ -172,7 +172,7 @@ export function Ingest() {
           <button
             onClick={handleImportAll}
             disabled={busy}
-            className="flex-[2] rounded-xl bg-red-500 py-3 font-semibold text-white disabled:opacity-50"
+            className="flex-[2] rounded-xl bg-green-500 py-3 font-semibold text-white disabled:opacity-50"
           >
             {busy ? 'Importing…' : `Import all ${multi.length}`}
           </button>
@@ -195,7 +195,7 @@ export function Ingest() {
           <button
             onClick={handleSaveSingle}
             disabled={busy}
-            className="flex-[2] rounded-xl bg-red-500 py-3 font-semibold text-white disabled:opacity-50"
+            className="flex-[2] rounded-xl bg-green-500 py-3 font-semibold text-white disabled:opacity-50"
           >
             {busy ? 'Saving…' : 'Save workout'}
           </button>
@@ -228,7 +228,7 @@ export function Ingest() {
           <button
             onClick={() => handleParse(text, source === 'share' ? 'share' : 'paste')}
             disabled={busy || !text.trim()}
-            className="rounded-xl bg-red-500 px-5 py-2.5 font-semibold text-white disabled:opacity-40"
+            className="rounded-xl bg-green-500 px-5 py-2.5 font-semibold text-white disabled:opacity-40"
           >
             {busy ? 'Parsing…' : 'Parse'}
           </button>

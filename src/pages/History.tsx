@@ -121,7 +121,7 @@ export function History() {
                 to={`/workout/${info.ids[0]}`}
                 title={tooltip}
                 className={`relative flex aspect-square items-center justify-center rounded-lg text-xs font-semibold text-white transition hover:brightness-125 ${
-                  isToday ? 'bg-red-500 ring-1 ring-zinc-100' : 'bg-red-500/80'
+                  isToday ? 'bg-green-500 ring-1 ring-zinc-100' : 'bg-green-500/80'
                 }`}
               >
                 {dayNum}

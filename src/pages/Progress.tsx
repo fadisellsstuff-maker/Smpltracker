@@ -24,7 +24,7 @@ const METRICS: { key: Metric; label: string; weight: boolean }[] = [
   { key: 'volume', label: 'Volume', weight: true },
 ]
 
-const SERIES = '#f87171' // red-400: single-series mark, strong on the dark surface
+const SERIES = '#4ade80' // green-400: single-series mark, strong on the dark surface
 const PR = '#fbbf24' // amber-400: PR highlight
 const GRID = '#2c2c2a'
 const AXIS = '#898781'

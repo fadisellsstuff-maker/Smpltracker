@@ -21,7 +21,7 @@ export function App() {
       <header className="safe-top sticky top-0 z-10 flex items-center justify-between border-b border-zinc-900 bg-[#0a0a0a]/90 px-4 py-3 backdrop-blur">
         <div className="flex items-center gap-2">
           <span className="text-lg font-bold tracking-tight text-zinc-50">Smpl</span>
-          <span className="text-lg font-bold tracking-tight text-red-500">Track</span>
+          <span className="text-lg font-bold tracking-tight text-green-500">Track</span>
         </div>
         <NavLink to="/settings" className="text-zinc-400 hover:text-zinc-100" aria-label="Settings">
           <GearIcon />
@@ -53,13 +53,13 @@ export function App() {
                 primary
                   ? 'text-zinc-900'
                   : isActive
-                    ? 'text-red-500'
+                    ? 'text-green-500'
                     : 'text-zinc-500 hover:text-zinc-300'
               }`
             }
           >
             {primary ? (
-              <span className="flex h-11 w-11 -translate-y-3 items-center justify-center rounded-full bg-red-500 shadow-lg shadow-red-500/30">
+              <span className="flex h-11 w-11 -translate-y-3 items-center justify-center rounded-full bg-green-500 shadow-lg shadow-green-500/30">
                 <Icon />
               </span>
             ) : (

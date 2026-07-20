@@ -31,8 +31,8 @@ export function Dashboard() {
         <SectionTitle>Muscle Map</SectionTitle>
         <Empty title="No workouts yet">
           <p>
-            Add your first note on the <Link to="/add" className="text-red-400">Add</Link> tab, or
-            load demo data from <Link to="/settings" className="text-red-400">Settings</Link> to see
+            Add your first note on the <Link to="/add" className="text-green-400">Add</Link> tab, or
+            load demo data from <Link to="/settings" className="text-green-400">Settings</Link> to see
             how it looks.
           </p>
         </Empty>

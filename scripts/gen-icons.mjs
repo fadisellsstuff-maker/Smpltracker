@@ -8,7 +8,7 @@ const outDir = join(dirname(fileURLToPath(import.meta.url)), '..', 'public', 'ic
 mkdirSync(outDir, { recursive: true })
 
 const BG = [10, 10, 10] // near-black
-const TILE = [239, 68, 68] // red-500
+const TILE = [34, 197, 94] // green-500
 const WHITE = [244, 244, 245]
 
 function crc32(buf) {
@@ -90,7 +90,7 @@ writeFileSync(join(outDir, 'icon-512.png'), png(512))
 
 const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
   <rect width="512" height="512" fill="#0a0a0a"/>
-  <rect x="72" y="72" width="368" height="368" rx="110" fill="#ef4444"/>
+  <rect x="72" y="72" width="368" height="368" rx="110" fill="#22c55e"/>
   <g fill="#f4f4f5">
     <rect x="143" y="240" width="226" height="32" rx="8"/>
     <rect x="123" y="215" width="31" height="82" rx="8"/>

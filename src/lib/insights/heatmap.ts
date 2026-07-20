@@ -34,7 +34,7 @@ export function computeHeatmap(exercises: ExerciseRecord[]): HeatmapData {
 }
 
 export const HEAT_COLORS: Record<HeatLevel, string> = {
-  primary: '#ef4444', // red-500
-  secondary: '#f59e0b', // amber-500
-  untrained: '#3f3f46', // zinc-700
+  primary: '#22c55e', // green-500 — trained hard
+  secondary: '#eab308', // yellow-500 — trained lightly / as an assister
+  untrained: '#5b6472', // slate-gray — the resting body, clearly visible on the dark card
 }

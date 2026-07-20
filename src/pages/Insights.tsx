@@ -9,9 +9,9 @@ import type { Muscle, SplitGroup } from '../lib/muscles'
 import { Card, Empty, SectionTitle } from '../components/ui'
 
 const SPLIT_META: { key: SplitGroup; label: string; color: string }[] = [
-  { key: 'push', label: 'Push', color: '#f87171' },
+  { key: 'push', label: 'Push', color: '#22c55e' },
   { key: 'pull', label: 'Pull', color: '#60a5fa' },
-  { key: 'legs', label: 'Legs', color: '#34d399' },
+  { key: 'legs', label: 'Legs', color: '#a78bfa' },
   { key: 'core', label: 'Core', color: '#fbbf24' },
 ]
 
@@ -127,7 +127,7 @@ export function Insights() {
                 <span className="w-24 shrink-0 text-zinc-400">{m.label}</span>
                 <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-zinc-800">
                   <div
-                    className="h-full rounded-full bg-red-400"
+                    className="h-full rounded-full bg-green-400"
                     style={{ width: `${(m.sets / maxMuscle) * 100}%` }}
                   />
                 </div>

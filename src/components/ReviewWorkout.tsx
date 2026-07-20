@@ -172,7 +172,7 @@ function ExerciseRow({
           </div>
         ))}
       </div>
-      <button onClick={addSet} className="mt-2 text-xs font-medium text-red-400 hover:text-red-300">
+      <button onClick={addSet} className="mt-2 text-xs font-medium text-green-400 hover:text-green-300">
         + add set
       </button>
     </Card>
