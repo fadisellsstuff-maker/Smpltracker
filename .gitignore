@@ -7,3 +7,6 @@ context/
 .DS_Store
 .vscode/*
 !.vscode/extensions.json
+
+# Superdesign scratch
+.superdesign/tmp/
