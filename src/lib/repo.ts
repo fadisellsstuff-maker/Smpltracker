@@ -47,6 +47,50 @@ export async function saveWorkout(
   })
 }
 
+/** The raw note text backing a workout (for reopening a note to edit). */
+export async function getWorkoutText(workoutId: number): Promise<string> {
+  const workout = await db.workouts.get(workoutId)
+  if (!workout?.noteId) return ''
+  const note = await db.notes.get(workout.noteId)
+  return note?.rawText ?? ''
+}
+
+/** Re-save an edited note in place: update its text, date/title, and exercises. */
+export async function updateWorkout(
+  workoutId: number,
+  draft: DraftWorkout,
+  rawText: string,
+): Promise<void> {
+  await db.transaction('rw', db.notes, db.workouts, db.exercises, async () => {
+    const workout = await db.workouts.get(workoutId)
+    if (!workout) return
+
+    const usedLlm = draft.exercises.some((e) => e.parsedBy === 'llm')
+    const usedRules = draft.exercises.some((e) => e.parsedBy === 'rules')
+    const parsedWith = usedLlm && usedRules ? 'mixed' : usedLlm ? 'llm' : 'rules'
+
+    if (workout.noteId != null) await db.notes.update(workout.noteId, { rawText })
+    await db.workouts.update(workoutId, {
+      date: draft.date,
+      title: draft.title,
+      parsedWith,
+      moved: draft.moved,
+    })
+
+    await db.exercises.where('workoutId').equals(workoutId).delete()
+    const rows: ExerciseRecord[] = draft.exercises
+      .filter((e) => e.canonicalId && e.sets.length > 0)
+      .map((e) => ({
+        workoutId,
+        name: e.name,
+        canonicalId: e.canonicalId,
+        sets: e.sets,
+        rawLine: e.rawLine,
+      }))
+    if (rows.length) await db.exercises.bulkAdd(rows)
+  })
+}
+
 /** Learn a user alias so future notes match this name to this exercise. */
 export async function learnAlias(alias: string, canonicalId: string): Promise<void> {
   const norm = alias.toLowerCase().trim()

@@ -1,6 +1,6 @@
 import type { Muscle } from './muscles'
 
-export type NoteSource = 'share' | 'paste' | 'file' | 'seed'
+export type NoteSource = 'share' | 'paste' | 'file' | 'seed' | 'note'
 
 export interface NoteRecord {
   id?: number

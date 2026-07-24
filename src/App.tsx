@@ -1,6 +1,8 @@
 import { NavLink, Navigate, Route, Routes } from 'react-router-dom'
 import { Dashboard } from './pages/Dashboard'
-import { Ingest } from './pages/Ingest'
+import { Notes } from './pages/Notes'
+import { NoteEditor } from './pages/NoteEditor'
+import { Import } from './pages/Import'
 import { Progress } from './pages/Progress'
 import { Insights } from './pages/Insights'
 import { History } from './pages/History'
@@ -10,7 +12,7 @@ import { Settings } from './pages/Settings'
 const NAV = [
   { to: '/', label: 'Home', icon: HomeIcon, end: true },
   { to: '/progress', label: 'Progress', icon: ChartIcon },
-  { to: '/add', label: 'Add', icon: PlusIcon, primary: true },
+  { to: '/notes', label: 'Notes', icon: NoteIcon, primary: true },
   { to: '/insights', label: 'Insights', icon: BalanceIcon },
   { to: '/history', label: 'History', icon: CalendarIcon },
 ]
@@ -31,8 +33,12 @@ export function App() {
       <main className="flex-1 px-4 pt-4 pb-28">
         <Routes>
           <Route path="/" element={<Dashboard />} />
-          <Route path="/add" element={<Ingest />} />
-          <Route path="/share" element={<Ingest />} />
+          <Route path="/notes" element={<Notes />} />
+          <Route path="/notes/new" element={<NoteEditor />} />
+          <Route path="/notes/:id" element={<NoteEditor />} />
+          <Route path="/share" element={<NoteEditor />} />
+          <Route path="/import" element={<Import />} />
+          <Route path="/add" element={<Navigate to="/notes/new" replace />} />
           <Route path="/progress" element={<Progress />} />
           <Route path="/insights" element={<Insights />} />
           <Route path="/history" element={<History />} />
@@ -107,10 +113,12 @@ function CalendarIcon() {
     </svg>
   )
 }
-function PlusIcon() {
+function NoteIcon() {
   return (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5">
-      <path d="M12 5v14M5 12h14" />
+    <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
+      <path d="M4 4.5A1.5 1.5 0 0 1 5.5 3h9L20 8.5V19a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 19z" />
+      <path d="M14 3v5h5" />
+      <path d="M8 12.5h7M8 16h5" strokeWidth="1.6" />
     </svg>
   )
 }
