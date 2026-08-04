@@ -4,13 +4,16 @@ import { BrowserRouter } from 'react-router-dom'
 import './index.css'
 import { App } from './App'
 import { SettingsProvider } from './SettingsContext'
+import { PersonaProvider } from './persona'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <BrowserRouter>
-      <SettingsProvider>
-        <App />
-      </SettingsProvider>
+      <PersonaProvider>
+        <SettingsProvider>
+          <App />
+        </SettingsProvider>
+      </PersonaProvider>
     </BrowserRouter>
   </StrictMode>,
 )

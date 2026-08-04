@@ -115,8 +115,13 @@ export function parseNote(text: string, opts: ParseOptions = {}): DraftWorkout {
       continue
     }
 
+    // Keep the user's wording for muscle-only matches ("glute machine"); use the
+    // catalog's canonical name for real exercises.
+    const displayName =
+      canonicalId && !canonicalId.startsWith('m:') ? getExercise(canonicalId)!.name : name || line
+
     exercises.push({
-      name: canonicalId ? getExercise(canonicalId)!.name : name || line,
+      name: displayName,
       canonicalId,
       sets,
       rawLine: line,

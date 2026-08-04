@@ -1,4 +1,5 @@
 import type { CatalogExercise } from '../types'
+import { MUSCLE_LABELS, MUSCLES, type Muscle } from '../muscles'
 
 /**
  * Exercise catalog: canonical names, common aliases/abbreviations, and
@@ -517,7 +518,15 @@ export const EXERCISE_CATALOG: CatalogExercise[] = [
 ]
 
 const byId = new Map(EXERCISE_CATALOG.map((e) => [e.id, e]))
+const MUSCLE_SET = new Set<string>(MUSCLES)
 
 export function getExercise(id: string): CatalogExercise | undefined {
+  // Synthetic "m:<muscle>" entries for exercises named only by their muscle
+  // (e.g. "glute machine", "calf ex") — that muscle is the primary mover.
+  if (id.startsWith('m:')) {
+    const muscle = id.slice(2)
+    if (!MUSCLE_SET.has(muscle)) return undefined
+    return { id, name: MUSCLE_LABELS[muscle as Muscle], aliases: [], primary: [muscle as Muscle], secondary: [] }
+  }
   return byId.get(id)
 }

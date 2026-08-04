@@ -1,5 +1,37 @@
 import { EXERCISE_CATALOG } from '../catalog/exercises'
+import type { Muscle } from '../muscles'
 import { levenshtein, normalize } from './normalize'
+
+/**
+ * When a name isn't a known exercise but mentions a muscle ("calf machine",
+ * "glute ex", "big booty ex", "titty exercise"), we log it against that muscle
+ * as the primary mover. Longer keywords are checked first so "hamstring" wins
+ * over a stray "ham". Returned as a synthetic `m:<muscle>` id (see getExercise).
+ */
+const MUSCLE_KEYWORDS: [string, Muscle][] = [
+  ['hamstrings', 'hamstrings'], ['hamstring', 'hamstrings'], ['hammy', 'hamstrings'],
+  ['glutes', 'glutes'], ['glute', 'glutes'], ['booty', 'glutes'], ['butt', 'glutes'],
+  ['calves', 'calves'], ['calfs', 'calves'], ['calf', 'calves'],
+  ['pecs', 'chest'], ['pec', 'chest'], ['chest', 'chest'],
+  ['titties', 'chest'], ['titty', 'chest'], ['tittie', 'chest'], ['tits', 'chest'],
+  ['quads', 'quads'], ['quad', 'quads'],
+  ['biceps', 'biceps'], ['bicep', 'biceps'],
+  ['triceps', 'triceps'], ['tricep', 'triceps'],
+  ['shoulders', 'side-delts'], ['shoulder', 'side-delts'], ['delts', 'side-delts'], ['delt', 'side-delts'],
+  ['forearms', 'forearms'], ['forearm', 'forearms'],
+  ['traps', 'traps'], ['trap', 'traps'],
+  ['lats', 'lats'], ['lat', 'lats'],
+  ['abs', 'abs'], ['core', 'abs'], ['ab', 'abs'],
+]
+
+/** Synthetic muscle id if the name mentions a muscle as a whole word, else undefined. */
+function matchMuscleName(normalized: string): string | undefined {
+  const padded = ` ${normalized} `
+  for (const [kw, muscle] of MUSCLE_KEYWORDS) {
+    if (padded.includes(` ${kw} `) || padded.includes(` ${kw}s `)) return `m:${muscle}`
+  }
+  return undefined
+}
 
 /** Filler words that carry no meaning for exercise identification. */
 const FILLER = new Set([
@@ -82,5 +114,8 @@ export function matchExercise(
       contain = { id: canonicalId, len: alias.length }
     }
   }
-  return contain?.id
+  if (contain) return contain.id
+
+  // Final fallback: exercise named only by a muscle -> that muscle is primary.
+  return matchMuscleName(target)
 }

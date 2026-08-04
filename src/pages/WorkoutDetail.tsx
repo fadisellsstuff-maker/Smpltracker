@@ -8,12 +8,15 @@ import { formatDMY } from '../lib/parser/dates'
 import { displayWeight } from '../lib/settings'
 import { MuscleHeatmap } from '../components/MuscleHeatmap/Heatmap'
 import { Card } from '../components/ui'
+import { muscleLabel } from '../lib/muscles'
 import { useSettings } from '../SettingsContext'
+import { usePersona } from '../persona'
 
 export function WorkoutDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
   const { settings } = useSettings()
+  const { gf } = usePersona()
   const [detail, setDetail] = useState<WorkoutWithExercises | null | undefined>(undefined)
   const [rawNote, setRawNote] = useState<string>('')
   const [showRaw, setShowRaw] = useState(false)
@@ -69,7 +72,7 @@ export function WorkoutDetail() {
               </div>
               {cat && (
                 <p className="mt-0.5 text-[11px] text-zinc-500">
-                  {cat.primary.map((m) => m.replace('-', ' ')).join(', ')}
+                  {cat.primary.map((m) => muscleLabel(m, gf)).join(', ')}
                 </p>
               )}
               <div className="mt-2 flex flex-wrap gap-1.5">

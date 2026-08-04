@@ -5,9 +5,11 @@ import { clearAll, exportAll, importAll, type ExportBundle } from '../lib/repo'
 import { seedDemoData } from '../lib/seed'
 import { Card, Pill, SectionTitle } from '../components/ui'
 import { useSettings } from '../SettingsContext'
+import { usePersona } from '../persona'
 
 export function Settings() {
   const { settings, update } = useSettings()
+  const { gf, setGf } = usePersona()
   const [busy, setBusy] = useState<string | null>(null)
   const [msg, setMsg] = useState<string | null>(null)
   const [showKey, setShowKey] = useState(false)
@@ -59,6 +61,20 @@ export function Settings() {
           </Pill>
         </div>
       </Card>
+
+      {gf && (
+        <Card>
+          <div className="mb-2 text-sm font-medium text-zinc-200">💖 Pink mode</div>
+          <div className="flex gap-2">
+            <Pill active onClick={() => {}}>
+              On
+            </Pill>
+            <Pill active={false} onClick={() => setGf(false)}>
+              Off
+            </Pill>
+          </div>
+        </Card>
+      )}
 
       <Card>
         <div className="text-sm font-medium text-zinc-200">Claude API key (optional)</div>

@@ -25,3 +25,33 @@ body {
 .safe-top {
   padding-top: env(safe-area-inset-top);
 }
+
+/* Secret "gf" persona (/onlyformygf): swap the green accent for pink.
+   Unlayered rules win over Tailwind's layered utilities. */
+[data-persona='gf'] .bg-green-500 {
+  background-color: #ec4899;
+}
+[data-persona='gf'] .bg-green-500\/80 {
+  background-color: color-mix(in srgb, #ec4899 80%, transparent);
+}
+[data-persona='gf'] .bg-green-400 {
+  background-color: #f472b6;
+}
+[data-persona='gf'] .border-green-500 {
+  border-color: #ec4899;
+}
+[data-persona='gf'] .text-green-500 {
+  color: #ec4899;
+}
+[data-persona='gf'] .text-green-400 {
+  color: #f472b6;
+}
+[data-persona='gf'] .text-green-300 {
+  color: #f9a8d4;
+}
+[data-persona='gf'] .hover\:text-green-300:hover {
+  color: #f9a8d4;
+}
+[data-persona='gf'] .shadow-green-500\/30 {
+  --tw-shadow-color: color-mix(in srgb, #ec4899 30%, transparent);
+}

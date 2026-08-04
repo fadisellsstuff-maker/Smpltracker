@@ -3,6 +3,7 @@ import { parseNote, parseNotes } from './index'
 import { parseSets } from './sets'
 import { matchExercise } from './matcher'
 import { detectDate } from './dates'
+import { getExercise } from '../catalog/exercises'
 
 describe('parseSets', () => {
   it('parses NxR', () => {
@@ -101,6 +102,29 @@ describe('matchExercise', () => {
     expect(matchExercise('db bench')).toBe('db-bench-press')
     expect(matchExercise('db curl')).toBe('bicep-curl')
     expect(matchExercise('ez curls')).toBe('bicep-curl')
+  })
+
+  it('maps a muscle-named exercise to that muscle as primary', () => {
+    expect(matchExercise('glute machine')).toBe('m:glutes')
+    expect(matchExercise('calf ex')).toBe('m:calves')
+    expect(matchExercise('big booty ex')).toBe('m:glutes') // slang
+    expect(matchExercise('titty exercise')).toBe('m:chest') // slang
+    expect(matchExercise('quad ex')).toBe('m:quads')
+  })
+
+  it('still prefers a real catalog exercise over the muscle fallback', () => {
+    expect(matchExercise('calf raise')).toBe('calf-raise')
+    expect(matchExercise('bicep curl')).toBe('bicep-curl')
+  })
+})
+
+describe('muscle-named exercises resolve muscles', () => {
+  it('glute machine primary = glutes; kept user wording', () => {
+    const w = parseNote('[v] glute machine 3x12 40kg')
+    const ex = w.exercises.find((e) => e.canonicalId === 'm:glutes')!
+    expect(ex).toBeTruthy()
+    expect(ex.name).toBe('glute machine')
+    expect(getExercise('m:glutes')!.primary).toEqual(['glutes'])
   })
 })
 

@@ -16,6 +16,7 @@ import { buildProgressSeries, type ProgressPoint } from '../lib/insights/progres
 import { displayWeight } from '../lib/settings'
 import { Card, Empty, Pill, SectionTitle, Stat } from '../components/ui'
 import { useSettings } from '../SettingsContext'
+import { usePersona } from '../persona'
 
 type Metric = 'est1RM' | 'topSet' | 'volume'
 const METRICS: { key: Metric; label: string; weight: boolean }[] = [
@@ -24,13 +25,14 @@ const METRICS: { key: Metric; label: string; weight: boolean }[] = [
   { key: 'volume', label: 'Volume', weight: true },
 ]
 
-const SERIES = '#4ade80' // green-400: single-series mark, strong on the dark surface
 const PR = '#fbbf24' // amber-400: PR highlight
 const GRID = '#2c2c2a'
 const AXIS = '#898781'
 
 export function Progress() {
   const { settings } = useSettings()
+  const { gf } = usePersona()
+  const seriesColor = gf ? '#f472b6' : '#4ade80' // single-series line (pink for gf persona)
   const [metric, setMetric] = useState<Metric>('est1RM')
 
   const data = useLiveQuery(async () => {
@@ -150,9 +152,9 @@ export function Progress() {
                 <Line
                   type="monotone"
                   dataKey="value"
-                  stroke={SERIES}
+                  stroke={seriesColor}
                   strokeWidth={2}
-                  dot={<PrDot />}
+                  dot={<PrDot series={seriesColor} />}
                   activeDot={{ r: 5 }}
                   isAnimationActive={false}
                 />
@@ -176,9 +178,9 @@ export function Progress() {
 }
 
 // PR sessions get an amber dot; others a small series dot.
-function PrDot(props: { cx?: number; cy?: number; payload?: ProgressPoint }) {
-  const { cx, cy, payload } = props
+function PrDot(props: { cx?: number; cy?: number; payload?: ProgressPoint; series?: string }) {
+  const { cx, cy, payload, series = '#4ade80' } = props
   if (cx == null || cy == null) return null
   if (payload?.isPR) return <Dot cx={cx} cy={cy} r={5} fill={PR} stroke="#0a0a0a" strokeWidth={2} />
-  return <Dot cx={cx} cy={cy} r={3} fill={SERIES} />
+  return <Dot cx={cx} cy={cy} r={3} fill={series} />
 }

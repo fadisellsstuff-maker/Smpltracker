@@ -43,6 +43,13 @@ export const MUSCLE_LABELS: Record<Muscle, string> = {
   calves: 'Calves',
 }
 
+/** Muscle label, with the pink-persona ("gf") renames applied when enabled. */
+export function muscleLabel(m: Muscle, gf = false): string {
+  if (gf && m === 'glutes') return 'Booty cheeks'
+  if (gf && m === 'chest') return 'Tittys'
+  return MUSCLE_LABELS[m]
+}
+
 /**
  * Maps the vendored react-body-highlighter polygon slugs to our muscle groups.
  * A polygon's heat level is the max level among the muscles listed here.

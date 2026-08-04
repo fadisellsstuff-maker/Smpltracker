@@ -5,8 +5,9 @@ import { getExercise } from '../lib/catalog/exercises'
 import { computeBalance, findNeglected } from '../lib/insights/balance'
 import { toISODate } from '../lib/parser/dates'
 import { daysAgoISO } from '../lib/repo'
-import type { Muscle, SplitGroup } from '../lib/muscles'
+import { muscleLabel, type Muscle, type SplitGroup } from '../lib/muscles'
 import { Card, Empty, SectionTitle } from '../components/ui'
+import { usePersona } from '../persona'
 
 const SPLIT_META: { key: SplitGroup; label: string; color: string }[] = [
   { key: 'push', label: 'Push', color: '#22c55e' },
@@ -16,6 +17,7 @@ const SPLIT_META: { key: SplitGroup; label: string; color: string }[] = [
 ]
 
 export function Insights() {
+  const { gf } = usePersona()
   const from30 = daysAgoISO(29)
 
   const data = useLiveQuery(async () => {
@@ -103,7 +105,7 @@ export function Insights() {
                 key={n.muscle}
                 className="rounded-full bg-zinc-800 px-3 py-1 text-xs text-amber-300"
               >
-                {n.label}
+                {muscleLabel(n.muscle, gf)}
                 <span className="ml-1 text-zinc-500">
                   {n.daysSince === null ? 'never' : `${n.daysSince}d`}
                 </span>
@@ -124,7 +126,7 @@ export function Insights() {
             .filter((m) => m.sets > 0)
             .map((m) => (
               <div key={m.muscle} className="flex items-center gap-2 text-sm">
-                <span className="w-24 shrink-0 text-zinc-400">{m.label}</span>
+                <span className="w-24 shrink-0 text-zinc-400">{muscleLabel(m.muscle, gf)}</span>
                 <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-zinc-800">
                   <div
                     className="h-full rounded-full bg-green-400"

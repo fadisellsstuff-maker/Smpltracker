@@ -1,10 +1,13 @@
 import type { Muscle } from '../../lib/muscles'
 import { SLUG_TO_MUSCLES } from '../../lib/muscles'
 import { HEAT_COLORS, type HeatLevel, type HeatmapData } from '../../lib/insights/heatmap'
+import { usePersona } from '../../persona'
 import { anteriorData, posteriorData, type BodyPolygon } from './bodyData'
 
 const BASE = '#5b6472' // resting body / non-muscle fill (matches HEAT_COLORS.untrained)
 const OUTLINE = '#0f1115' // dark seam between muscles for definition
+
+type HeatColors = Record<HeatLevel, string>
 
 /** Custom polygons for groups the library lacks (lats + side delts). */
 interface Overlay {
@@ -35,21 +38,23 @@ function levelForSlug(slug: string, data: HeatmapData): HeatLevel {
   }, 'untrained')
 }
 
-function fillForSlug(slug: string, data: HeatmapData): string {
+function fillForSlug(slug: string, data: HeatmapData, colors: HeatColors): string {
   const muscles = SLUG_TO_MUSCLES[slug]
   if (!muscles) return BASE // head/neck/knees
-  return HEAT_COLORS[levelForSlug(slug, data)]
+  return colors[levelForSlug(slug, data)]
 }
 
 function BodyView({
   polygons,
   overlays,
   data,
+  colors,
   label,
 }: {
   polygons: BodyPolygon[]
   overlays: Overlay[]
   data: HeatmapData
+  colors: HeatColors
   label: string
 }) {
   return (
@@ -59,7 +64,7 @@ function BodyView({
           <polygon
             key={`${poly.muscle}-${i}`}
             points={points}
-            fill={fillForSlug(poly.muscle, data)}
+            fill={fillForSlug(poly.muscle, data, colors)}
             stroke={OUTLINE}
             strokeWidth={0.4}
           />
@@ -69,7 +74,7 @@ function BodyView({
         <polygon
           key={`ov-${i}`}
           points={o.points}
-          fill={HEAT_COLORS[data.level[o.muscle]]}
+          fill={colors[data.level[o.muscle]]}
           stroke={OUTLINE}
           strokeWidth={0.4}
         />
@@ -79,20 +84,23 @@ function BodyView({
 }
 
 export function MuscleHeatmap({ data }: { data: HeatmapData }) {
+  const { gf } = usePersona()
+  // "Primary" (trained-hard) recolors to pink for the gf persona.
+  const colors: HeatColors = { ...HEAT_COLORS, primary: gf ? '#ec4899' : HEAT_COLORS.primary }
   return (
     <div>
       <div className="flex items-start justify-center gap-4">
         <div className="h-72 w-1/2 max-w-[150px]">
-          <BodyView polygons={anteriorData} overlays={ANTERIOR_OVERLAYS} data={data} label="Front muscle map" />
+          <BodyView polygons={anteriorData} overlays={ANTERIOR_OVERLAYS} data={data} colors={colors} label="Front muscle map" />
         </div>
         <div className="h-72 w-1/2 max-w-[150px]">
-          <BodyView polygons={posteriorData} overlays={POSTERIOR_OVERLAYS} data={data} label="Back muscle map" />
+          <BodyView polygons={posteriorData} overlays={POSTERIOR_OVERLAYS} data={data} colors={colors} label="Back muscle map" />
         </div>
       </div>
       <div className="mt-3 flex items-center justify-center gap-4 text-xs text-zinc-400">
-        <Legend color={HEAT_COLORS.primary} label="Primary" />
-        <Legend color={HEAT_COLORS.secondary} label="Secondary" />
-        <Legend color={HEAT_COLORS.untrained} label="Untrained" />
+        <Legend color={colors.primary} label="Primary" />
+        <Legend color={colors.secondary} label="Secondary" />
+        <Legend color={colors.untrained} label="Untrained" />
       </div>
     </div>
   )
