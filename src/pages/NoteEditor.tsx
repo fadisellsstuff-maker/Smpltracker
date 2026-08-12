@@ -3,44 +3,21 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { parseNotes } from '../lib/parser'
 import { detectDate, formatDMY, toISODate } from '../lib/parser/dates'
 import { resolveDuplicateDates } from '../lib/importDates'
-import { getUserAliasMap, getWorkoutText, saveWorkout, updateWorkout } from '../lib/repo'
+import { getUserAliasMap, getWorkoutNote, saveWorkout, updateWorkout } from '../lib/repo'
 import { displayWeight } from '../lib/settings'
 import { useSettings } from '../SettingsContext'
-
-type Kind = 'text' | 'todo' | 'done'
-interface Line {
-  id: number
-  kind: Kind
-  text: string
-}
+import {
+  type Line,
+  isBlank,
+  linesToRich,
+  newLineId,
+  parseRawToLines,
+  richToLines,
+  serializeLines,
+} from '../lib/richtext'
+import { caretAtStart, sanitizeHtml, setCaret, splitAtCaret, toggleBig } from '../lib/richdom'
 
 const PLACEHOLDER = 'Push day…'
-const CHECKBOX_RE = /^\s*(?:[-*•]\s*)?\[([ xXvV])\]\s?(.*)$/
-
-let idSeq = 1
-const newId = () => idSeq++
-
-function parseRawToLines(raw: string): Line[] {
-  const rows = raw.split(/\r?\n/)
-  const lines = rows.map((r): Line => {
-    const m = r.match(CHECKBOX_RE)
-    if (m) return { id: newId(), kind: /[xXvV]/.test(m[1]) ? 'done' : 'todo', text: m[2] }
-    return { id: newId(), kind: 'text', text: r }
-  })
-  return lines.length ? lines : [{ id: newId(), kind: 'text', text: '' }]
-}
-
-function serialize(lines: Line[]): string {
-  return lines
-    .map((l) => (l.kind === 'done' ? `[v] ${l.text}` : l.kind === 'todo' ? `[ ] ${l.text}` : l.text))
-    .join('\n')
-}
-
-function grow(el: HTMLTextAreaElement | null) {
-  if (!el) return
-  el.style.height = 'auto'
-  el.style.height = `${el.scrollHeight}px`
-}
 
 export function NoteEditor() {
   const { id } = useParams()
@@ -48,29 +25,35 @@ export function NoteEditor() {
   const navigate = useNavigate()
   const [params] = useSearchParams()
   const { settings } = useSettings()
+  const append = params.get('append') === '1'
 
-  const [lines, setLines] = useState<Line[]>(() => [{ id: newId(), kind: 'text', text: '' }])
+  const [lines, setLines] = useState<Line[]>(() => [{ id: newLineId(), kind: 'text', html: '' }])
   const [loaded, setLoaded] = useState(editId == null)
   const [focusedId, setFocusedId] = useState<number | null>(null)
   const [pending, setPending] = useState<{ id: number; caret: number } | null>(null)
   const [confirming, setConfirming] = useState(false)
   const [saving, setSaving] = useState(false)
-  const inputs = useRef(new Map<number, HTMLTextAreaElement>())
+  const els = useRef(new Map<number, HTMLDivElement>())
 
-  // Load existing note or a shared payload.
+  // Load existing note (rich if present, else plain rawText) or a shared payload.
   useEffect(() => {
     if (editId != null) {
-      getWorkoutText(editId).then((t) => {
-        setLines(parseRawToLines(t))
+      getWorkoutNote(editId).then(({ rawText, rich }) => {
+        const loadedLines = richToLines(rich) ?? parseRawToLines(rawText)
+        if (append) {
+          loadedLines.push({ id: newLineId(), kind: 'text', html: '' })
+          setPending({ id: loadedLines[loadedLines.length - 1].id, caret: 0 })
+        }
+        setLines(loadedLines)
         setLoaded(true)
       })
     } else {
       const shared = [params.get('title'), params.get('text')].filter(Boolean).join('\n')
       if (shared) setLines(parseRawToLines(shared))
     }
-  }, [editId, params])
+  }, [editId, params, append])
 
-  const text = useMemo(() => serialize(lines), [lines])
+  const text = useMemo(() => serializeLines(lines), [lines])
 
   // Live parse for the counter + save confirm (rules only).
   const preview = useMemo(() => {
@@ -81,31 +64,42 @@ export function NoteEditor() {
     return { count: exercises.length, exercises, unmatched, date, multi: blocks.length > 1 }
   }, [text])
 
-  // Grow every textarea when content changes; apply pending focus.
-  useLayoutEffect(() => {
-    inputs.current.forEach((el) => grow(el))
-  }, [lines])
+  // Apply pending focus + caret after a structural change.
   useLayoutEffect(() => {
     if (!pending) return
-    const el = inputs.current.get(pending.id)
+    const el = els.current.get(pending.id)
     if (el) {
       el.focus()
-      el.setSelectionRange(pending.caret, pending.caret)
-      grow(el)
+      setCaret(el, pending.caret)
     }
     setPending(null)
-  }, [pending])
+  }, [pending, lines])
 
-  const setText = (lineId: number, value: string) =>
-    setLines((ls) => ls.map((l) => (l.id === lineId ? { ...l, text: value } : l)))
+  const readHtml = (lineId: number, el: HTMLDivElement) =>
+    setLines((ls) => ls.map((l) => (l.id === lineId ? { ...l, html: sanitizeHtml(el.innerHTML) } : l)))
 
   const toggleDone = (lineId: number) =>
     setLines((ls) =>
       ls.map((l) => (l.id === lineId ? { ...l, kind: l.kind === 'done' ? 'todo' : 'done' } : l)),
     )
 
-  // Toolbar: turn the focused line into / out of a checklist item.
-  const toggleFocusedCheckbox = () => {
+  // Toolbar: bold / underline / big on the selection; checkbox on the focused line.
+  const applyInline = (cmd: 'bold' | 'underline') => {
+    const el = focusedId != null ? els.current.get(focusedId) : null
+    if (!el) return
+    el.focus()
+    document.execCommand('styleWithCSS', false, 'false')
+    document.execCommand(cmd)
+    readHtml(focusedId!, el)
+  }
+  const applyBig = () => {
+    const el = focusedId != null ? els.current.get(focusedId) : null
+    if (!el) return
+    el.focus()
+    toggleBig()
+    readHtml(focusedId!, el)
+  }
+  const toggleCheckbox = () => {
     const target = focusedId ?? lines[lines.length - 1]?.id
     if (target == null) return
     setLines((ls) =>
@@ -114,39 +108,35 @@ export function NoteEditor() {
     setPending({ id: target, caret: 0 })
   }
 
-  function onKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>, index: number) {
+  function onKeyDown(e: React.KeyboardEvent<HTMLDivElement>, index: number) {
     const line = lines[index]
     const el = e.currentTarget
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
-      const caret = el.selectionStart
       // Empty checklist item + Enter → drop the checkbox (exit the list).
-      if (line.kind !== 'text' && line.text === '') {
+      if (line.kind !== 'text' && isBlank(line)) {
         setLines((ls) => ls.map((l, i) => (i === index ? { ...l, kind: 'text' } : l)))
         return
       }
-      const before = line.text.slice(0, caret)
-      const after = line.text.slice(caret)
-      const nid = newId()
-      const nextKind: Kind = line.kind === 'text' ? 'text' : 'todo'
+      const { before, after } = splitAtCaret(el)
+      const nid = newLineId()
+      const nextKind = line.kind === 'text' ? 'text' : 'todo'
       setLines((ls) => {
-        const copy = ls.map((l, i) => (i === index ? { ...l, text: before } : l))
-        copy.splice(index + 1, 0, { id: nid, kind: nextKind, text: after })
+        const copy = ls.map((l, i) => (i === index ? { ...l, html: sanitizeHtml(before) } : l))
+        copy.splice(index + 1, 0, { id: nid, kind: nextKind, html: sanitizeHtml(after) })
         return copy
       })
       setPending({ id: nid, caret: 0 })
-    } else if (e.key === 'Backspace' && el.selectionStart === 0 && el.selectionEnd === 0) {
+    } else if (e.key === 'Backspace' && caretAtStart(el)) {
       if (line.kind !== 'text') {
         e.preventDefault()
         setLines((ls) => ls.map((l, i) => (i === index ? { ...l, kind: 'text' } : l)))
       } else if (index > 0) {
         e.preventDefault()
         const prev = lines[index - 1]
-        const caret = prev.text.length
+        const caret = prev.html.replace(/<[^>]+>/g, '').length
         setLines((ls) => {
-          const copy = ls.map((l, i) =>
-            i === index - 1 ? { ...l, text: prev.text + line.text } : l,
-          )
+          const copy = ls.map((l, i) => (i === index - 1 ? { ...l, html: prev.html + line.html } : l))
           copy.splice(index, 1)
           return copy
         })
@@ -160,11 +150,15 @@ export function NoteEditor() {
     try {
       const aliases = await getUserAliasMap()
       const blocks = parseNotes(text, { userAliases: aliases })
+      const rich = linesToRich(lines)
+      const single = blocks.length === 1
       if (editId != null) {
-        await updateWorkout(editId, blocks[0].draft, blocks[0].rawText || text)
+        await updateWorkout(editId, blocks[0].draft, blocks[0].rawText || text, single ? rich : undefined)
+        // Appending a new dated day to a note splits off extra workouts.
+        for (const b of blocks.slice(1)) await saveWorkout(b.draft, b.rawText, 'note')
       } else {
-        if (blocks.length > 1) resolveDuplicateDates(blocks)
-        for (const b of blocks) await saveWorkout(b.draft, b.rawText, 'note')
+        if (!single) resolveDuplicateDates(blocks)
+        for (const b of blocks) await saveWorkout(b.draft, b.rawText, 'note', single ? rich : undefined)
       }
       navigate('/notes')
     } finally {
@@ -190,58 +184,42 @@ export function NoteEditor() {
         </button>
       </div>
 
-      {/* Line-based notes surface: [ ]/[v] lines are real checkboxes. */}
+      {/* Notes surface: each line is an inline-rich contentEditable; [ ]/[v] are real checkboxes. */}
       <div className="flex-1 space-y-0.5">
         {lines.map((line, i) => (
-          <div key={line.id} className="flex items-start gap-2">
-            {line.kind !== 'text' && (
-              <button
-                onClick={() => toggleDone(line.id)}
-                aria-label={line.kind === 'done' ? 'Mark not done' : 'Mark done'}
-                className={`mt-[3px] flex h-[19px] w-[19px] shrink-0 items-center justify-center rounded-[6px] border-2 text-[12px] leading-none text-white ${
-                  line.kind === 'done' ? 'border-green-500 bg-green-500' : 'border-zinc-600'
-                }`}
-              >
-                {line.kind === 'done' ? '✓' : ''}
-              </button>
-            )}
-            <textarea
-              ref={(el) => {
-                if (el) inputs.current.set(line.id, el)
-                else inputs.current.delete(line.id)
-              }}
-              value={line.text}
-              rows={1}
-              autoFocus={i === 0 && line.text === '' && editId == null}
-              placeholder={i === 0 ? PLACEHOLDER : ''}
-              spellCheck={false}
-              onFocus={() => setFocusedId(line.id)}
-              onChange={(e) => {
-                setText(line.id, e.target.value)
-                grow(e.target)
-              }}
-              onKeyDown={(e) => onKeyDown(e, i)}
-              className={`w-full resize-none overflow-hidden bg-transparent leading-6 outline-none placeholder:text-zinc-600 ${
-                i === 0 && line.kind === 'text'
-                  ? 'text-lg font-semibold text-zinc-50'
-                  : line.kind === 'done'
-                    ? 'text-[15px] text-zinc-500 line-through'
-                    : 'text-[15px] text-zinc-100'
-              }`}
-            />
-          </div>
+          <LineRow
+            key={line.id}
+            line={line}
+            isTitle={i === 0}
+            registerEl={(el) => {
+              if (el) els.current.set(line.id, el)
+              else els.current.delete(line.id)
+            }}
+            onFocus={() => setFocusedId(line.id)}
+            onInput={(el) => readHtml(line.id, el)}
+            onKeyDown={(e) => onKeyDown(e, i)}
+            onToggleDone={() => toggleDone(line.id)}
+          />
         ))}
       </div>
 
       {/* Format bar + live status, above the tab bar. */}
-      <div className="sticky bottom-24 mt-2 flex items-center justify-between rounded-xl border border-zinc-800 bg-zinc-900/80 px-3 py-2 backdrop-blur">
-        <button
-          onClick={toggleFocusedCheckbox}
-          className="flex items-center gap-1.5 rounded-lg bg-zinc-800 px-3 py-1.5 text-sm font-medium text-zinc-200"
-        >
-          <span className="text-green-400">☑</span> Checkbox
-        </button>
-        <span className="text-xs text-zinc-500">
+      <div className="sticky bottom-24 mt-2 flex items-center justify-between rounded-xl border border-zinc-800 bg-zinc-900/80 px-2 py-2 backdrop-blur">
+        <div className="flex items-center gap-1">
+          <ToolBtn label="Bold" onClick={() => applyInline('bold')}>
+            <span className="font-bold">B</span>
+          </ToolBtn>
+          <ToolBtn label="Underline" onClick={() => applyInline('underline')}>
+            <span className="underline">U</span>
+          </ToolBtn>
+          <ToolBtn label="Bigger" onClick={applyBig}>
+            <span className="font-semibold">A+</span>
+          </ToolBtn>
+          <ToolBtn label="Checkbox" onClick={toggleCheckbox}>
+            <span className="text-green-400">☑</span>
+          </ToolBtn>
+        </div>
+        <span className="pr-1 text-xs text-zinc-500">
           {preview.count > 0
             ? `${preview.count} exercise${preview.count > 1 ? 's' : ''} · ${formatDMY(preview.date)}`
             : 'Type your workout…'}
@@ -257,6 +235,94 @@ export function NoteEditor() {
           onSave={doSave}
         />
       )}
+    </div>
+  )
+}
+
+function ToolBtn({
+  label,
+  onClick,
+  children,
+}: {
+  label: string
+  onClick: () => void
+  children: React.ReactNode
+}) {
+  return (
+    <button
+      aria-label={label}
+      title={label}
+      // Keep the editor selection: prevent the button from stealing focus.
+      onMouseDown={(e) => e.preventDefault()}
+      onClick={onClick}
+      className="flex h-8 w-9 items-center justify-center rounded-lg bg-zinc-800 text-sm text-zinc-200 active:bg-zinc-700"
+    >
+      {children}
+    </button>
+  )
+}
+
+function LineRow({
+  line,
+  isTitle,
+  registerEl,
+  onFocus,
+  onInput,
+  onKeyDown,
+  onToggleDone,
+}: {
+  line: Line
+  isTitle: boolean
+  registerEl: (el: HTMLDivElement | null) => void
+  onFocus: () => void
+  onInput: (el: HTMLDivElement) => void
+  onKeyDown: (e: React.KeyboardEvent<HTMLDivElement>) => void
+  onToggleDone: () => void
+}) {
+  const ref = useRef<HTMLDivElement | null>(null)
+
+  // Only write innerHTML when it differs (avoids clobbering the caret while typing).
+  useLayoutEffect(() => {
+    const el = ref.current
+    if (el && el.innerHTML !== line.html) el.innerHTML = line.html
+  }, [line.html])
+
+  const cls =
+    isTitle && line.kind === 'text'
+      ? 'text-lg font-semibold text-zinc-50'
+      : line.kind === 'done'
+        ? 'text-[15px] text-zinc-500 line-through'
+        : 'text-[15px] text-zinc-100'
+
+  return (
+    <div className="flex items-start gap-2">
+      {line.kind !== 'text' && (
+        <button
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={onToggleDone}
+          aria-label={line.kind === 'done' ? 'Mark not done' : 'Mark done'}
+          className={`mt-[3px] flex h-[19px] w-[19px] shrink-0 items-center justify-center rounded-[6px] border-2 text-[12px] leading-none text-white ${
+            line.kind === 'done' ? 'border-green-500 bg-green-500' : 'border-zinc-600'
+          }`}
+        >
+          {line.kind === 'done' ? '✓' : ''}
+        </button>
+      )}
+      <div
+        ref={(el) => {
+          ref.current = el
+          registerEl(el)
+        }}
+        contentEditable
+        suppressContentEditableWarning
+        role="textbox"
+        data-placeholder={isTitle ? PLACEHOLDER : ''}
+        spellCheck={false}
+        onFocus={onFocus}
+        onInput={(e) => onInput(e.currentTarget)}
+        onKeyDown={onKeyDown}
+        className={`w-full whitespace-pre-wrap break-words leading-6 outline-none empty:before:text-zinc-600 empty:before:content-[attr(data-placeholder)] ${cls}`}
+      />
     </div>
   )
 }

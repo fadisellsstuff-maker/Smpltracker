@@ -26,6 +26,12 @@ body {
   padding-top: env(safe-area-inset-top);
 }
 
+/* Inline "bigger" text from the note editor's A+ toolbar button. */
+.rt-lg {
+  font-size: 1.25em;
+  font-weight: 600;
+}
+
 /* Secret "gf" persona (/onlyformygf): swap the green accent for pink.
    Unlayered rules win over Tailwind's layered utilities. */
 [data-persona='gf'] .bg-green-500 {

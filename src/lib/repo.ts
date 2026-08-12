@@ -16,13 +16,14 @@ export async function saveWorkout(
   draft: DraftWorkout,
   rawText: string,
   source: NoteSource,
+  rich?: string,
 ): Promise<number> {
   return db.transaction('rw', db.notes, db.workouts, db.exercises, db.userAliases, async () => {
     const usedLlm = draft.exercises.some((e) => e.parsedBy === 'llm')
     const usedRules = draft.exercises.some((e) => e.parsedBy === 'rules')
     const parsedWith = usedLlm && usedRules ? 'mixed' : usedLlm ? 'llm' : 'rules'
 
-    const noteId = (await db.notes.add({ source, rawText, receivedAt: Date.now() })) as number
+    const noteId = (await db.notes.add({ source, rawText, rich, receivedAt: Date.now() })) as number
     const workoutId = (await db.workouts.add({
       date: draft.date,
       title: draft.title,
@@ -55,11 +56,20 @@ export async function getWorkoutText(workoutId: number): Promise<string> {
   return note?.rawText ?? ''
 }
 
+/** The note backing a workout: plain text + optional rich (formatted) JSON. */
+export async function getWorkoutNote(workoutId: number): Promise<{ rawText: string; rich?: string }> {
+  const workout = await db.workouts.get(workoutId)
+  if (!workout?.noteId) return { rawText: '' }
+  const note = await db.notes.get(workout.noteId)
+  return { rawText: note?.rawText ?? '', rich: note?.rich }
+}
+
 /** Re-save an edited note in place: update its text, date/title, and exercises. */
 export async function updateWorkout(
   workoutId: number,
   draft: DraftWorkout,
   rawText: string,
+  rich?: string,
 ): Promise<void> {
   await db.transaction('rw', db.notes, db.workouts, db.exercises, async () => {
     const workout = await db.workouts.get(workoutId)
@@ -69,7 +79,7 @@ export async function updateWorkout(
     const usedRules = draft.exercises.some((e) => e.parsedBy === 'rules')
     const parsedWith = usedLlm && usedRules ? 'mixed' : usedLlm ? 'llm' : 'rules'
 
-    if (workout.noteId != null) await db.notes.update(workout.noteId, { rawText })
+    if (workout.noteId != null) await db.notes.update(workout.noteId, { rawText, rich })
     await db.workouts.update(workoutId, {
       date: draft.date,
       title: draft.title,

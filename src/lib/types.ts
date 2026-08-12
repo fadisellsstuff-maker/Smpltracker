@@ -6,6 +6,8 @@ export interface NoteRecord {
   id?: number
   source: NoteSource
   rawText: string
+  /** Optional rich representation (JSON of formatted lines) for faithful reload. */
+  rich?: string
   receivedAt: number // epoch ms
   workoutId?: number
 }
