@@ -1,7 +1,6 @@
 import { NavLink, Navigate, Route, Routes } from 'react-router-dom'
 import { Dashboard } from './pages/Dashboard'
 import { Notes } from './pages/Notes'
-import { NoteEditor } from './pages/NoteEditor'
 import { Import } from './pages/Import'
 import { Progress } from './pages/Progress'
 import { Insights } from './pages/Insights'
@@ -34,11 +33,11 @@ export function App() {
         <Routes>
           <Route path="/" element={<Dashboard />} />
           <Route path="/notes" element={<Notes />} />
-          <Route path="/notes/new" element={<NoteEditor />} />
-          <Route path="/notes/:id" element={<NoteEditor />} />
-          <Route path="/share" element={<NoteEditor />} />
+          <Route path="/share" element={<Notes />} />
+          <Route path="/notes/new" element={<Navigate to="/notes" replace />} />
+          <Route path="/notes/:id" element={<Navigate to="/notes" replace />} />
           <Route path="/import" element={<Import />} />
-          <Route path="/add" element={<Navigate to="/notes/new" replace />} />
+          <Route path="/add" element={<Navigate to="/notes" replace />} />
           <Route path="/progress" element={<Progress />} />
           <Route path="/insights" element={<Insights />} />
           <Route path="/history" element={<History />} />

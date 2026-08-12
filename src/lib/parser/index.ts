@@ -9,7 +9,7 @@ const HEADER_START_RE =
   /^(push|pull|legs?|upper|lower|full\s?body|chest|back|shoulders?|arms?|day|workout|session|gym|rest|ppl|cardio|advanced)\b/i
 
 /** A line whose whole content is a date (+ optional weekday), e.g. "27/1/23 Fri". */
-const DATE_HEADER_LINE_RE =
+export const DATE_HEADER_LINE_RE =
   /^\s*(?:\d{4}[/.\-]\d{1,2}[/.\-]\d{1,2}|\d{1,2}[/.\-]\d{1,2}(?:[/.\-]\d{2,4})?)\s*[a-zA-Z]*\.?\s*$/
 
 /** A line carries real set notation (x-reps, @weight, or a unit) — not just prose. */

@@ -1,5 +1,5 @@
-// Rich-text helpers for the note editor. Pure/DOM-free so they're unit-testable;
-// the DOM-dependent caret/split logic lives in NoteEditor.
+// Rich-text helpers for the notes document. Pure/DOM-free so they're
+// unit-testable; the DOM-dependent caret/split logic lives in richdom.ts.
 export type LineKind = 'text' | 'todo' | 'done'
 export interface Line {
   id: number

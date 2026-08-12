@@ -4,6 +4,7 @@ import { parseNotes, type ParsedBlock } from '../lib/parser'
 import { formatDMY } from '../lib/parser/dates'
 import { resolveDuplicateDates } from '../lib/importDates'
 import { getUserAliasMap, saveWorkout } from '../lib/repo'
+import { clearMaster } from '../lib/notesdoc'
 import { Card, SectionTitle } from '../components/ui'
 
 const SAMPLE = `27/1/23 Fri
@@ -58,6 +59,7 @@ export function Import() {
         done++
         if (done % 10 === 0) setProgress(`Imported ${done} / ${blocks.length}…`)
       }
+      clearMaster() // rebuild the continuous document from the newly imported DB
       navigate('/notes')
     } finally {
       setBusy(false)

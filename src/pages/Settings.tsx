@@ -2,6 +2,7 @@ import { useRef, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../lib/db'
 import { clearAll, exportAll, importAll, type ExportBundle } from '../lib/repo'
+import { clearMaster } from '../lib/notesdoc'
 import { seedDemoData } from '../lib/seed'
 import { Card, Pill, SectionTitle } from '../components/ui'
 import { useSettings } from '../SettingsContext'
@@ -43,6 +44,7 @@ export function Settings() {
   async function handleImport(file: File) {
     const bundle = JSON.parse(await file.text()) as ExportBundle
     await importAll(bundle)
+    clearMaster()
     setMsg('Data imported.')
   }
 
@@ -115,7 +117,7 @@ export function Settings() {
         </p>
         <div className="mt-3 flex flex-wrap gap-2">
           <button
-            onClick={() => run('seed', async () => void (await seedDemoData()))}
+            onClick={() => run('seed', async () => { await seedDemoData(); clearMaster() })}
             disabled={busy !== null}
             className="rounded-xl bg-zinc-800 px-4 py-2.5 text-sm font-medium text-zinc-200 disabled:opacity-50"
           >
@@ -145,6 +147,7 @@ export function Settings() {
               confirm('Delete ALL workouts and notes on this device?') &&
               run('clear', async () => {
                 await clearAll()
+                clearMaster()
                 setMsg('All data cleared.')
               })
             }
