@@ -2,11 +2,31 @@ import { memo, useCallback, useEffect, useLayoutEffect, useRef, useState } from 
 import { useSearchParams } from 'react-router-dom'
 import { toISODate, formatDMY } from '../lib/parser/dates'
 import { isDateLine, loadDocLines, rebuildFromLines, saveMaster } from '../lib/notesdoc'
-import { type Line, newLineId, parseRawToLines, plainOf } from '../lib/richtext'
+import { type Line, newLineId, parseRawToLines, plainOf, serializeLines } from '../lib/richtext'
 import { caretAtStart, sanitizeHtml, setCaret, splitAtCaret, toggleBig } from '../lib/richdom'
 
 const PLACEHOLDER = 'Start typing your workout…'
 const SECTION_CHUNK = 30 // date-sections rendered per "load earlier" step
+
+function copyText(text: string): void {
+  if (navigator.clipboard?.writeText) {
+    navigator.clipboard.writeText(text).catch(() => fallbackCopy(text))
+  } else fallbackCopy(text)
+}
+function fallbackCopy(text: string): void {
+  const ta = document.createElement('textarea')
+  ta.value = text
+  ta.style.position = 'fixed'
+  ta.style.opacity = '0'
+  document.body.appendChild(ta)
+  ta.select()
+  try {
+    document.execCommand('copy')
+  } catch {
+    /* ignore */
+  }
+  ta.remove()
+}
 
 /** Indices where a new dated section begins (index 0 + every date line). */
 function sectionStarts(lines: Line[]): number[] {
@@ -27,6 +47,7 @@ export function NotesDoc() {
   const [pending, setPending] = useState<{ id: number; caret: number } | null>(null)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [copiedIdx, setCopiedIdx] = useState<number | null>(null)
 
   const els = useRef(new Map<number, HTMLDivElement>())
   const linesRef = useRef(lines)
@@ -109,6 +130,26 @@ export function NotesDoc() {
       ls.map((l) => (l.id === id ? { ...l, kind: l.kind === 'done' ? 'todo' : 'done' } : l)),
     )
   }, [])
+  // Multi-line paste (e.g. a copied old workout): split it into real lines.
+  const onPaste = useCallback((e: React.ClipboardEvent<HTMLDivElement>, id: number) => {
+    const text = e.clipboardData.getData('text/plain')
+    if (!text || !/\r?\n/.test(text)) return // single line → let the browser paste natively
+    e.preventDefault()
+    markDirty()
+    const index = idIndex(id)
+    const pasted = parseRawToLines(text)
+    const cur = linesRef.current[index]
+    setLines((ls) => {
+      const copy = [...ls]
+      // Drop into an empty line in place; otherwise insert just below.
+      const at = cur && plainOf(cur.html).trim() === '' ? index : index + 1
+      if (at === index) copy.splice(index, 1, ...pasted)
+      else copy.splice(index + 1, 0, ...pasted)
+      return copy
+    })
+    const last = pasted[pasted.length - 1]
+    setPending({ id: last.id, caret: plainOf(last.html).length })
+  }, [])
 
   const onKeyDown = useCallback((e: React.KeyboardEvent<HTMLDivElement>, id: number) => {
     const index = idIndex(id)
@@ -189,6 +230,21 @@ export function NotesDoc() {
     setPending({ id: blank.id, caret: 0 })
   }
 
+  // Copy a whole workout's text (from its date line to the next) to the clipboard.
+  const copySection = (startIndex: number) => {
+    const ls = linesRef.current
+    let end = ls.length
+    for (let j = startIndex + 1; j < ls.length; j++) {
+      if (isDateLine(ls[j])) {
+        end = j
+        break
+      }
+    }
+    copyText(serializeLines(ls.slice(startIndex, end)))
+    setCopiedIdx(startIndex)
+    setTimeout(() => setCopiedIdx((c) => (c === startIndex ? null : c)), 1400)
+  }
+
   async function save() {
     setSaving(true)
     dirty.current = false // prevent the unmount handler from double-rebuilding
@@ -238,16 +294,32 @@ export function NotesDoc() {
               {date && globalIndex > 0 && (
                 <div className="my-3 border-t border-dashed border-zinc-700" />
               )}
-              <LineRow
-                line={line}
-                variant={date ? 'date' : 'normal'}
-                showPlaceholder={lines.length <= 2 && globalIndex === 0}
-                register={register}
-                onFocus={onFocus}
-                onInput={onInput}
-                onKeyDown={onKeyDown}
-                onToggleDone={onToggleDone}
-              />
+              {/* LineRow stays at a stable tree position (never remounts on date toggle);
+                  the Copy button is only an extra sibling. */}
+              <div className="flex items-start gap-2">
+                <div className="min-w-0 flex-1">
+                  <LineRow
+                    line={line}
+                    variant={date ? 'date' : 'normal'}
+                    showPlaceholder={lines.length <= 2 && globalIndex === 0}
+                    register={register}
+                    onFocus={onFocus}
+                    onInput={onInput}
+                    onKeyDown={onKeyDown}
+                    onToggleDone={onToggleDone}
+                    onPaste={onPaste}
+                  />
+                </div>
+                {date && (
+                  <button
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => copySection(globalIndex)}
+                    className="mt-[2px] shrink-0 rounded-md bg-zinc-800 px-2 py-1 text-[11px] font-medium text-zinc-400 active:bg-zinc-700"
+                  >
+                    {copiedIdx === globalIndex ? 'Copied ✓' : '⧉ Copy'}
+                  </button>
+                )}
+              </div>
             </div>
           )
         })}
@@ -308,6 +380,7 @@ interface RowProps {
   onInput: (id: number, el: HTMLDivElement) => void
   onKeyDown: (e: React.KeyboardEvent<HTMLDivElement>, id: number) => void
   onToggleDone: (id: number) => void
+  onPaste: (e: React.ClipboardEvent<HTMLDivElement>, id: number) => void
 }
 
 const LineRow = memo(function LineRow({
@@ -319,6 +392,7 @@ const LineRow = memo(function LineRow({
   onInput,
   onKeyDown,
   onToggleDone,
+  onPaste,
 }: RowProps) {
   const ref = useRef<HTMLDivElement | null>(null)
   useLayoutEffect(() => {
@@ -360,6 +434,7 @@ const LineRow = memo(function LineRow({
         onFocus={() => onFocus(line.id)}
         onInput={(e) => onInput(line.id, e.currentTarget)}
         onKeyDown={(e) => onKeyDown(e, line.id)}
+        onPaste={(e) => onPaste(e, line.id)}
         className={`w-full whitespace-pre-wrap break-words leading-6 outline-none empty:before:text-zinc-600 empty:before:content-[attr(data-placeholder)] ${cls}`}
       />
     </div>
