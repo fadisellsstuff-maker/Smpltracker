@@ -32,6 +32,58 @@ body {
   font-weight: 600;
 }
 
+/* Single-surface notes document: one contentEditable, each line a .ln block. */
+.ln-doc .ln {
+  min-height: 1.5em;
+}
+.ln-doc .ln.date {
+  margin-top: 14px;
+  border-top: 1px dashed #3f3f46;
+  padding-top: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #71717a;
+}
+.ln-doc .ln.date:first-child {
+  margin-top: 0;
+  border-top: 0;
+  padding-top: 0;
+}
+.ln-doc .ln.done {
+  color: #71717a;
+  text-decoration: line-through;
+}
+.ln-doc .cb {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  margin-right: 8px;
+  border: 2px solid #52525b;
+  border-radius: 6px;
+  vertical-align: -3px;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.ln-doc .ln.done .cb {
+  background: #22c55e;
+  border-color: #22c55e;
+}
+.ln-doc .ln.done .cb::after {
+  content: '✓';
+  color: #fff;
+  font-size: 12px;
+  line-height: 1;
+}
+[data-persona='gf'] .ln-doc .ln.done .cb {
+  background: #ec4899;
+  border-color: #ec4899;
+}
+
 /* Secret "gf" persona (/onlyformygf): swap the green accent for pink.
    Unlayered rules win over Tailwind's layered utilities. */
 [data-persona='gf'] .bg-green-500 {
